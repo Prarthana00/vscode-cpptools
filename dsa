@@ -1,0 +1,99 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define ALPHABET_SIZE 26
+#define MAX_WORD_LENGTH 100
+#define MAX_SUGGESTIONS 5
+
+typedef struct TrieNode {
+    struct TrieNode *children[ALPHABET_SIZE];
+    int isEndOfWord;
+} TrieNode;
+
+TrieNode* createNode() {
+    TrieNode* node = (TrieNode*)malloc(sizeof(TrieNode));
+    node->isEndOfWord = 0;
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        node->children[i] = NULL;
+    }
+    return node;
+}
+
+void insert(TrieNode *root, const char *word) {
+    TrieNode *current = root;
+    for (int i = 0; word[i] != '\0'; i++) {
+        int index = tolower(word[i]) - 'a';
+        if (!current->children[index]) {
+            current->children[index] = createNode();
+        }
+        current = current->children[index];
+    }
+    current->isEndOfWord = 1;
+}
+
+void autocompleteHelper(TrieNode *node, char *prefix, int level) {
+    if (node->isEndOfWord) {
+        prefix[level] = '\0';
+        printf("%s\n", prefix);
+    }
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        if (node->children[i]) {
+            prefix[level] = i + 'a';
+            autocompleteHelper(node->children[i], prefix, level + 1);
+        }
+    }
+}
+
+void autocomplete(TrieNode *root, const char *prefix) {
+    TrieNode *current = root;
+    char word[MAX_WORD_LENGTH];
+    int level = 0;
+
+    for (int i = 0; prefix[i] != '\0'; i++) {
+        int index = tolower(prefix[i]) - 'a';
+        if (!current->children[index]) {
+            printf("No suggestions found.\n");
+            return;
+        }
+        current = current->children[index];
+        word[level++] = tolower(prefix[i]);
+    }
+    word[level] = '\0';
+    autocompleteHelper(current, word, level);
+}
+
+char* autocorrect(const char *input, const char *dictionary[], int dictSize) {
+    for (int i = 0; i < dictSize; i++) {
+        if (strcasecmp(input, dictionary[i]) == 0) {
+            return (char*)dictionary[i]; // Return the correct word
+        }
+    }
+    return (char*)input; // Return the original if no match found
+}
+
+int main() {
+    TrieNode *root = createNode();
+    const char *dictionary[] = {"hello", "world", "hi", "her", "he", "help", "hero", "happy", "happiness", "hat"};
+    int dictSize = sizeof(dictionary) / sizeof(dictionary[0]);
+
+    // Insert words into Trie
+    for (int i = 0; i < dictSize; i++) {
+        insert(root, dictionary[i]);
+    }
+
+    char input[MAX_WORD_LENGTH];
+    printf("Enter a prefix for autocomplete: ");
+    scanf("%s", input);
+    printf("Autocomplete suggestions:\n");
+    autocomplete(root, input);
+
+    printf("\nEnter a word for autocorrection: ");
+    scanf("%s", input);
+    char *corrected = autocorrect(input, dictionary, dictSize);
+    printf("Autocorrected word: %s\n", corrected);
+
+    // Clean up memory (not shown for simplicity)
+    return 0;
+}
